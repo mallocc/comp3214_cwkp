@@ -1,8 +1,10 @@
-#include "main.h"
+#include <stdio.h>
+
+#include "cwkp.h"
 
 int main()
 {
-	printf("hello world!");
+	run_cwk();
 
 	getc(stdin);
 

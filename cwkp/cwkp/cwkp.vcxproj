@@ -71,19 +71,19 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(ProjectDir)\graphics_stuff\glew\glew-2.1.0\include;$(ProjectDir)\graphics_stuff\glfw\glfw-3.2.1.bin.WIN64\include;$(ProjectDir)\graphics_stuff;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)\graphics_stuff\glew\glew-2.1.0\include;$(ProjectDir)\graphics_stuff\glfw\glfw-3.2.1.bin.WIN64\include;$(ProjectDir)\graphics_stuff;$(ProjectDir)\graphics_stuff\stb_image;$(ProjectDir)\graphics_stuff\tiny_object_loader;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(ProjectDir)\graphics_stuff\glew\glew-2.1.0\include;$(ProjectDir)\graphics_stuff\glfw\glfw-3.2.1.bin.WIN64\include;$(ProjectDir)\graphics_stuff;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)\graphics_stuff\glew\glew-2.1.0\include;$(ProjectDir)\graphics_stuff\glfw\glfw-3.2.1.bin.WIN64\include;$(ProjectDir)\graphics_stuff;$(ProjectDir)\graphics_stuff\stb_image;$(ProjectDir)\graphics_stuff\tiny_object_loader;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(ProjectDir)\graphics_stuff\glew\glew-2.1.0\include;$(ProjectDir)\graphics_stuff\glfw\glfw-3.2.1.bin.WIN64\include;$(ProjectDir)\graphics_stuff;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)\graphics_stuff\glew\glew-2.1.0\include;$(ProjectDir)\graphics_stuff\glfw\glfw-3.2.1.bin.WIN64\include;$(ProjectDir)\graphics_stuff;$(ProjectDir)\graphics_stuff\stb_image;$(ProjectDir)\graphics_stuff\tiny_object_loader;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(ProjectDir)\graphics_stuff\glew\glew-2.1.0\include;$(ProjectDir)\graphics_stuff\glfw\glfw-3.2.1.bin.WIN64\include;$(ProjectDir)\graphics_stuff;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)\graphics_stuff\glew\glew-2.1.0\include;$(ProjectDir)\graphics_stuff\glfw\glfw-3.2.1.bin.WIN64\include;$(ProjectDir)\graphics_stuff;$(ProjectDir)\graphics_stuff\stb_image;$(ProjectDir)\graphics_stuff\tiny_object_loader;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -158,10 +158,29 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="cwkp.cpp" />
+    <ClCompile Include="graphics_stuff\tiny_object_loader\tiny_obj_loader.cpp" />
+    <ClCompile Include="load_image.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Obj.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="main.h" />
+    <ClInclude Include="colors.h" />
+    <ClInclude Include="cwkp.h" />
+    <ClInclude Include="glm.h" />
+    <ClInclude Include="glslprogram.h" />
+    <ClInclude Include="graphics_stuff\stb_image\stb_image.h" />
+    <ClInclude Include="graphics_stuff\tiny_object_loader\tiny_obj_loader.h" />
+    <ClInclude Include="light.h" />
+    <ClInclude Include="load_image.h" />
+    <ClInclude Include="Obj.h" />
+    <ClInclude Include="opengl.h" />
+    <ClInclude Include="varhandle.h" />
+    <ClInclude Include="vertex.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="shaders\basic.frag" />
+    <None Include="shaders\basic.vert" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
