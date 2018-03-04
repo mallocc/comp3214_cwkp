@@ -3,21 +3,36 @@
 #include <chrono>
 #include <thread>
 
-GLSLProgramManager programs;
-VarHandleManager handles;
+GLSLProgramManager	programs;
 
-VarHandle model_mat_handle, view_mat_handle, proj_mat_handle, tex_handle, normmap_handle;
+VarHandle
+	model_mat_handle, 
+	view_mat_handle, 
+	proj_mat_handle, 
+	tex_handle, 
+	normmap_handle, 
+	light_handles[5],
+	ambient_color_handle, 
+	eye_dir_handle;
 
 glm::vec2
-window_size(1280, 720);
+	window_size(1280, 720);
+
 glm::vec3
-eye_position(0,0,5),
-eye_direction;
+	eye_position(0, 0, 3),
+	eye_direction,
+	ambient_color = glm::vec3(0.1f,0.2f,0.3f);
 
-glm::mat4 model, view, projection;
+glm::mat4 
+	model, 
+	view, 
+	projection;
 
-Obj sphere;
+Obj 
+	sphere,
+	object;
 
+Light lights = { glm::vec3(0,0,10),glm::vec3(1,1,1),100,0.8,100 };
 
 //Error callback  
 static void		error_callback(int error, const char* description)
@@ -32,6 +47,18 @@ static void		key_callback(GLFWwindow* window, int key, int scancode, int action,
 	{
 		switch (key)
 		{
+		case GLFW_KEY_UP:
+			eye_position += eye_position * 0.1f;
+			break;
+		case GLFW_KEY_DOWN:
+			eye_position -= eye_position * 0.1f;
+			break;
+		case GLFW_KEY_RIGHT:
+			eye_position = glm::quat(glm::vec3(0, glm::radians(3.0f), 0)) * eye_position;
+			break;
+		case GLFW_KEY_LEFT:
+			eye_position = glm::quat(glm::vec3(0, -glm::radians(3.0f), 0)) * eye_position;
+			break;
 		case GLFW_KEY_ESCAPE:
 		case GLFW_KEY_Q:
 			glfwSetWindowShouldClose(window, GL_TRUE);
@@ -43,20 +70,21 @@ static void		key_callback(GLFWwindow* window, int key, int scancode, int action,
 
 void loop()
 {
+	lights.pos = glm::quat(glm::vec3(0, 0.005f, 0)) * lights.pos;
+	//eye_position = glm::quat(glm::vec3(0, 0.005f, 0)) * eye_position;
+
 	//// LOAD GLOBAL HANDLES
 	view_mat_handle.load();
 	proj_mat_handle.load();
-
-	tex_handle.load();
-	normmap_handle.load();	
-
+	for (VarHandle v : light_handles)
+		v.load();
+	ambient_color_handle.load();
+	eye_dir_handle.load();
 
 	//// DRAW OBJECTS
-	sphere.draw(
-		0,
-		&model_mat_handle,
-		&tex_handle,
-		&normmap_handle);
+	//sphere.draw(0,&model_mat_handle,&tex_handle,&normmap_handle);
+
+	object.draw(0,&model_mat_handle,&tex_handle,&normmap_handle);
 }
 
 //Initilise custom objects
@@ -66,6 +94,7 @@ void			init()
 	printf("\n");
 	printf("Initialising GLSL programs...\n");
 	programs.add_program("shaders/basic.vert", "shaders/basic.frag");
+	programs.add_program("shaders/complex.vert", "shaders/complex.frag");
 
 
 
@@ -87,21 +116,61 @@ void			init()
 	normmap_handle = VarHandle("u_norm");
 	normmap_handle.init(programs.current_program);
 
+	light_handles[0] = VarHandle("u_light_pos", &lights.pos);
+	light_handles[1] = VarHandle("u_diffuse_color", &lights.color);
+	light_handles[2] = VarHandle("u_brightness", &lights.brightness);
+	light_handles[3] = VarHandle("u_shininess", &lights.shininess);
+	light_handles[4] = VarHandle("u_specular_scale", &lights.specular_scale);
 
+	for (int i = 0; i < 5; ++i)
+		light_handles[i].init(programs.current_program);
 
+	eye_dir_handle = VarHandle("u_eye_pos", &eye_position);
+	eye_dir_handle.init(programs.current_program);
+
+	ambient_color_handle = VarHandle("u_ambient_color", &ambient_color);
+	ambient_color_handle.init(programs.current_program);
+	
+	
+	
 	//// CREATE OBJECTS
 	printf("\n");
 	printf("Initialising objects...\n");
 	// create sphere data for screen A, B and D
-	std::vector<glm::vec3> v = generate_sphere(200, 200);
-	std::vector<Vertex> o = pack_object(&v, GEN_DEFAULT, GREY);
+	std::vector<glm::vec3> v = generate_rects(10,10);//generate_sphere(1000, 1000);
+	v = subdivide(v);
+	std::vector<glm::vec3> n = generate_normals(v);
+	std::vector<glm::vec2> uv = generate_uv_rects(10,10);//generate_sphereical_uvs(v);
+	std::vector<glm::vec3> t = generate_tangents(v);
+	image_data image = get_data("textures/metal_height.jpg");
+	v = generate_map_heights_from_uvs(v, n, uv, &image, 10.0f);
+	std::vector<Vertex> o = pack_object(&v,NULL,&n,&uv,&t);//pack_object(&v, GEN_ALL | GEN_UVS_SPHERE, GREY);
 
-	sphere = Obj("","",
+	sphere = Obj(
+		//"textures/5672_mars_4k_color.bmp",
+		//"textures/5672_mars_4k_normal.bmp",
+		//"textures/197.bmp",
+		//"textures/197_norm.bmp",
+		"textures/metal_color.jpg",
+		"textures/metal_norm.jpg",
 		o,
 		glm::vec3(),
 		glm::vec3(1, 0, 0),
 		glm::radians(90.0f),
 		glm::vec3(1, 1, 1)
+	);
+
+	object = Obj(
+		1,
+		"objects/bunny.obj",
+		"textures/metal_color.jpg",
+		"textures/metal_norm.jpg",
+		"textures/metal_height.jpg",
+		glm::vec3(),
+		glm::vec3(),
+		glm::vec3(1, 0, 0),
+		glm::radians(90.0f),
+		glm::vec3(1, 1, 1) //* 0.01f
 	);
 }
 

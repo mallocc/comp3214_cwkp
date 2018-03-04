@@ -18,7 +18,10 @@ inline float		randf()
 {
 	return static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
 }
-
+float Dot(glm::vec3 a, glm::vec3 b)
+{
+	return a.x * b.x + a.y * b.y + a.z * b.z;
+}
 
 //Cube vertex data array
 GLfloat cube_v_b[] = {
@@ -62,6 +65,27 @@ GLfloat cube_v_b[] = {
 
 
 ///shape generators non indexed triangles
+
+std::vector<glm::vec3>			subdivide(std::vector<glm::vec3> v)
+{
+	std::vector<glm::vec3> V;
+	for (int i = 0; i < v.size(); i += 3)
+	{
+		glm::vec3 n = v[i+1] - v[i];
+		n /= 2.0f;
+		n = v[i] + n;
+
+		V.push_back(n);
+		V.push_back(v[i]);
+		V.push_back(v[i + 1]);
+
+		V.push_back(n);
+		V.push_back(v[i + 1]);
+		V.push_back(v[i + 2]);
+	}
+	return V;
+}
+
 std::vector<glm::vec3>			generate_cube()
 {
 	std::vector<glm::vec3> v;
@@ -173,6 +197,50 @@ std::vector<glm::vec3>			generate_rect()
 	n.push_back(glm::vec3(1, 0, 1));
 	return n;
 }
+std::vector<glm::vec3>			generate_rects(int w, int h)
+{
+	glm::vec3
+		s = glm::vec3(1/(float)w, 0, 1/(float)h),
+		a = glm::vec3(1, 0, 1) * s, 
+		b = glm::vec3(1, 0, -1) * s,
+		c = glm::vec3(-1, 0, -1) * s,
+		d = glm::vec3(-1, 0, 1) * s;
+	std::vector<glm::vec3> n;
+	for (int x = 0; x < w; ++x)
+		for (int y = 0; y < h; ++y) 
+		{
+			glm::vec3 t = s * glm::vec3(x,0,y) -glm::vec3(0.5f, 0, 0.5f);
+			n.push_back(a + t);
+			n.push_back(b + t);
+			n.push_back(c + t);
+			n.push_back(c + t);
+			n.push_back(d + t);
+			n.push_back(a + t);			
+		}
+	return n;
+}
+std::vector<glm::vec2>			generate_uv_rects(int w, int h)
+{
+	glm::vec2
+		s = glm::vec2(1 / (float)w, 1 / (float)h),
+		a = glm::vec2(1, 1) * s,
+		b = glm::vec2(1, -1) * s,
+		c = glm::vec2(-1, -1) * s,
+		d = glm::vec2(-1, 1) * s;
+	std::vector<glm::vec2> n;
+	for (int x = 0; x < w; ++x)
+		for (int y = 0; y < h; ++y)
+		{
+			glm::vec2 t = s * glm::vec2(x, y);
+			n.push_back(a + t);
+			n.push_back(b + t);
+			n.push_back(c + t);
+			n.push_back(c + t);
+			n.push_back(d + t);
+			n.push_back(a + t);
+		}
+	return n;
+}
 // generates normals from every triangle
 std::vector<glm::vec3>			generate_normals(std::vector<glm::vec3> v)
 {
@@ -184,6 +252,49 @@ std::vector<glm::vec3>			generate_normals(std::vector<glm::vec3> v)
 			n.push_back(nm);
 	}
 	return n;
+}
+std::vector<glm::vec3>			generate_map_heights(std::vector<glm::vec3> v, std::vector<glm::vec3> n, image_data * image, float k)
+{
+	std::vector<glm::vec3> V;
+	for (int i = 0; i < v.size(); i+=3)
+	{
+		glm::vec3 nm = glm::normalize(glm::cross(v[i + 1] - v[i], v[i + 2] - v[i]));
+		for (int j = 0; j < 3; ++j)
+		{
+			glm::vec2 uv = glm::vec2((atan2(v[i + j].x, v[i + j].y) / 3.1415926f + 1.0f) * 0.5, (asin(v[i+j].z) / 3.1415926 + 0.5));
+			int x = uv.x * image->w;
+			int y = uv.y * image->h;
+			int c = x * image->n + (y * image->n * image->w);
+			c = glm::clamp(c, 0, image->w*image->h*image->n - 2);
+			float r = (image->data[c] + image->data[c+1] + image->data[c+2]) / (256.0f*3.0f);
+			r = (r - 1.0f * k);
+			r *= k;
+			glm::vec3 nv = nm * (Dot(v[i+j],nm)) * r + v[i+j];
+			V.push_back(nv);
+		}
+	}
+	return V;
+}
+std::vector<glm::vec3>			generate_map_heights_from_uvs(std::vector<glm::vec3> v, std::vector<glm::vec3> n, std::vector<glm::vec2> uv, image_data * image, float k)
+{
+	std::vector<glm::vec3> V;
+	for (int i = 0; i < uv.size(); i += 3)
+	{
+		glm::vec3 nm = glm::normalize(glm::cross(v[i + 1] - v[i], v[i + 2] - v[i]));
+		for (int j = 0; j < 3; ++j)
+		{
+			int x = uv[i].x * image->w;
+			int y = uv[i].y * image->h;
+			int c = x * image->n + (y * image->n * image->w);
+			c = glm::clamp(c, 0, image->w*image->h*image->n - 2);
+			float r = (image->data[c] + image->data[c + 1] + image->data[c + 2]) / (256.0f*3.0f);
+			r = (r - 1.0f * k);
+			r *= k;
+			glm::vec3 nv = nm * (Dot(v[i + j], nm)) * r + v[i + j];
+			V.push_back(nv);
+		}
+	}
+	return V;
 }
 // generates a second normal (tangent) for every normal (used for normal mapping)
 std::vector<glm::vec3>			generate_tangents(std::vector<glm::vec3> v)
@@ -210,7 +321,7 @@ std::vector<glm::vec2>			generate_sphereical_uvs(std::vector<glm::vec3> v)
 	std::vector<glm::vec2> uv;
 	for (int i = 0; i < v.size(); i++)
 	{
-		uv.push_back(glm::vec2((atan2(v[i].y, v[i].x) / 3.1415926f + 1.0f) * 0.5, (asin(v[i].z) / 3.1415926 + 0.5)));
+		uv.push_back(glm::vec2((atan2(v[i].x, v[i].y) / 3.1415926f + 1.0f) * 0.5, (asin(v[i].z) / 3.1415926 + 0.5)));
 	}
 	return uv;
 }
@@ -292,6 +403,61 @@ std::vector<Vertex>				pack_object(
 		Vertex vert;
 		if (v->size() != 0)
 			vert.position = (*v)[i];
+		if (c.size() != 0)
+			vert.color = c[i];
+		if (n.size() != 0)
+			vert.normal = n[i];
+		if (uv.size() != 0)
+			vert.uv = uv[i];
+		if (t.size() != 0)
+			vert.tangent = t[i];
+		object.push_back(vert);
+	}
+	return object;
+}
+std::vector<Vertex>				pack_object(
+	std::vector<glm::vec3> * v,
+	unsigned int flags,
+	glm::vec3 color,
+	image_data * image,
+	float k
+)
+{
+	std::vector<Vertex> object;
+	std::vector<glm::vec3> n, c, t, V = *v;
+	std::vector<glm::vec2> uv;
+
+	if (flags == NULL)
+		flags = GEN_DEFAULT;
+
+	if ((flags & GEN_NORMS) == GEN_NORMS)
+		n = generate_normals(*v);
+	if ((flags & GEN_COLOR) == GEN_COLOR)
+		c = generate_colour_buffer(color, v->size());
+	if ((flags & GEN_COLOR_RAND) == GEN_COLOR_RAND)
+		c = random_colour_buffer(color, v->size());
+	if ((flags & GEN_COLOR_RAND_I) == GEN_COLOR_RAND_I)
+		c = random_intesity_colour_buffer(color, v->size());
+	if ((flags & GEN_UVS_POLAR) == GEN_UVS_POLAR)
+		uv = generate_polar_uvs(*v);
+	if ((flags & GEN_UVS_RECTS) == GEN_UVS_RECTS)
+		uv = generate_repeated_rect_uvs(*v);
+	if ((flags & GEN_UVS_SPHERE) == GEN_UVS_SPHERE)
+		uv = generate_sphereical_uvs(*v);
+	if ((flags & GEN_TANGS) == GEN_TANGS)
+		t = generate_tangents(*v);
+
+
+	if ((flags & GEN_MAP_HEIGHTS) == GEN_MAP_HEIGHTS)
+		V = generate_map_heights(*v, n, image, k);
+	if ((flags & GEN_UV_HEIGHTS) == GEN_UV_HEIGHTS)
+		V = generate_map_heights_from_uvs(*v, n, uv, image, k);
+
+	for (int i = 0; i < v->size(); ++i)
+	{
+		Vertex vert;
+		if (V.size() != 0)
+			vert.position = V[i];
 		if (c.size() != 0)
 			vert.color = c[i];
 		if (n.size() != 0)
@@ -398,6 +564,98 @@ Obj::Obj(
 			));
 
 	std::vector<Vertex> data = pack_object(&vertices, GEN_ALL | GEN_COLOR, c);
+
+	printf("New object file loaded: \n   [ \n%s \n   ]\n   Vertex count: %i\n", obj_err, data.size());
+
+	pos = _pos;
+	rotation = _rotation;
+	theta = _theta;
+	scale = _scale;
+
+	load_textures(texfilename, normfilename);
+	init(&data);
+}
+Obj::Obj(
+	const char *filename,
+	const char *texfilename,
+	const char *normfilename,
+	const char *heightmapfilename,
+	glm::vec3 c,
+	glm::vec3 _pos,
+	glm::vec3 _rotation,
+	GLfloat _theta,
+	glm::vec3 _scale
+)
+{
+	std::vector<tinyobj::shape_t> shapes;
+	std::vector<tinyobj::material_t> materials;
+	std::vector< glm::vec3 > vertices;
+	std::vector< Vertex > o;
+
+	std::string obj_err =
+		tinyobj::LoadObj(shapes, materials, filename, NULL);
+
+	for (int i = 0; i < shapes.size(); i++)
+		for (int j = 0; j < shapes[i].mesh.indices.size(); j++)
+			vertices.push_back(glm::vec3(
+				shapes[i].mesh.positions[shapes[i].mesh.indices[j] * 3],
+				shapes[i].mesh.positions[shapes[i].mesh.indices[j] * 3 + 1],
+				shapes[i].mesh.positions[shapes[i].mesh.indices[j] * 3 + 2]
+			));
+
+	int flags = GEN_ALL | GEN_COLOR;
+	if (heightmapfilename != "")
+		flags = GEN_ALL | GEN_COLOR | GEN_UV_HEIGHTS;
+
+	std::vector<Vertex> data = pack_object(&vertices, flags, c);
+
+	printf("New object file loaded: \n   [ \n%s \n   ]\n   Vertex count: %i\n", obj_err, data.size());
+
+	pos = _pos;
+	rotation = _rotation;
+	theta = _theta;
+	scale = _scale;
+
+	load_textures(texfilename, normfilename);
+	init(&data);
+}
+Obj::Obj(
+	int k,
+	const char *filename,
+	const char *texfilename,
+	const char *normfilename,
+	const char *heightmapfilename,
+	glm::vec3 c,
+	glm::vec3 _pos,
+	glm::vec3 _rotation,
+	GLfloat _theta,
+	glm::vec3 _scale
+)
+{
+	std::vector<tinyobj::shape_t> shapes;
+	std::vector<tinyobj::material_t> materials;
+	std::vector< glm::vec3 > vertices;
+	std::vector< Vertex > o;
+
+	std::string obj_err =
+		tinyobj::LoadObj(shapes, materials, filename, NULL);
+
+	for (int i = 0; i < shapes.size(); i++)
+		for (int j = 0; j < shapes[i].mesh.indices.size(); j++)
+			vertices.push_back(glm::vec3(
+				shapes[i].mesh.positions[shapes[i].mesh.indices[j] * 3],
+				shapes[i].mesh.positions[shapes[i].mesh.indices[j] * 3 + 1],
+				shapes[i].mesh.positions[shapes[i].mesh.indices[j] * 3 + 2]
+			));
+
+	int flags = GEN_ALL | GEN_COLOR;
+	if (heightmapfilename != "")
+		flags = GEN_ALL | GEN_COLOR | GEN_UV_HEIGHTS;
+
+	for (int i = 0; i < k; ++i)
+		vertices = subdivide(vertices);
+
+	std::vector<Vertex> data = pack_object(&vertices, flags, c);
 
 	printf("New object file loaded: \n   [ \n%s \n   ]\n   Vertex count: %i\n", obj_err, data.size());
 

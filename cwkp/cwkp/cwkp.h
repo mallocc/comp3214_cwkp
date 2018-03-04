@@ -9,6 +9,7 @@
 #include "varhandle.h"
 #include "Obj.h"
 #include "glslprogram.h"
+#include "light.h"
 
 
 

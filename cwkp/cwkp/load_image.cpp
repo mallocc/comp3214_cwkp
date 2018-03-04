@@ -10,7 +10,7 @@ GLuint load_texture_from_image(const char *fname)
 	int w, h, n;
 	unsigned char *data = stbi_load(fname, &w, &h, &n, 0);
 	if (data == NULL) {
-		fprintf(stderr, "Image not loaded: %s", fname);
+		fprintf(stderr, "Image not loaded: %s\n", fname);
 		const char *error = stbi_failure_reason();
 		fprintf(stderr, "Failure reason %s\n", error);
 		return GL_TEXTURE0;
@@ -32,3 +32,11 @@ GLuint load_texture_from_image(const char *fname)
 	return tex;
 }
 
+
+
+image_data get_data(const char * filename)
+{
+	int w, h, n;
+	unsigned char *data = stbi_load(filename, &w, &h, &n, 0);
+	return{data, w,h,n};
+}

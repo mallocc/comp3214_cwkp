@@ -91,5 +91,11 @@
     <None Include="shaders\basic.vert">
       <Filter>Resource Files\Shaders</Filter>
     </None>
+    <None Include="shaders\complex.frag">
+      <Filter>Resource Files\Shaders</Filter>
+    </None>
+    <None Include="shaders\complex.vert">
+      <Filter>Resource Files\Shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>

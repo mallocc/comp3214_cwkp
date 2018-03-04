@@ -13,6 +13,8 @@
 #define GEN_UVS_POLAR 0x4
 #define GEN_UVS_RECTS 0x8
 #define GEN_UVS_SPHERE 0x80
+#define GEN_MAP_HEIGHTS 0x100
+#define GEN_UV_HEIGHTS 0x200
 #define GEN_ALL (GEN_NORMS | GEN_TANGS | GEN_UVS_POLAR)
 #define GEN_COLOR 0x10
 #define GEN_COLOR_RAND 0x20
@@ -21,18 +23,37 @@
 
 
 //prototypes
-
+std::vector<glm::vec3>			subdivide(std::vector<glm::vec3> v);
 std::vector<glm::vec3>			generate_cube();
 std::vector<glm::vec3>			generate_cone(int k);
 std::vector<glm::vec3>			generate_cylinder(int k, float len);
 std::vector<glm::vec3>			generate_sphere(int lats, int longs);
 std::vector<glm::vec3>			generate_rect();
+std::vector<glm::vec3>			generate_rects(int w, int h);
+std::vector<glm::vec2>			generate_uv_rects(int w, int h);
+std::vector<glm::vec3>			generate_normals(std::vector<glm::vec3> v);
+std::vector<glm::vec3>			generate_map_heights(std::vector<glm::vec3> v, std::vector<glm::vec3> n, image_data * image, float k);
+std::vector<glm::vec3>			generate_map_heights_from_uvs(std::vector<glm::vec3> v, std::vector<glm::vec3> n, std::vector<glm::vec2> uv, image_data * image, float k);
+std::vector<glm::vec3>			generate_tangents(std::vector<glm::vec3> v);
+std::vector<glm::vec2>			generate_polar_uvs(std::vector<glm::vec3> v);
+std::vector<glm::vec2>			generate_sphereical_uvs(std::vector<glm::vec3> v);
+std::vector<glm::vec2>			generate_repeated_rect_uvs(std::vector<glm::vec3> v);
+std::vector<glm::vec3>			generate_colour_buffer(glm::vec3 colour, int n);
+std::vector<glm::vec3>			random_colour_buffer(glm::vec3 max, int n);
+std::vector<glm::vec3>			random_intesity_colour_buffer(glm::vec3 colour, int n);
 
 // creates a vector of Vertices to pass to Obj
 std::vector<Vertex>				pack_object(
 	std::vector<glm::vec3> * v, 
 	unsigned int flags, 
 	glm::vec3 color
+);
+std::vector<Vertex>				pack_object(
+	std::vector<glm::vec3> * v,
+	unsigned int flags,
+	glm::vec3 color,
+	image_data * image,
+	float k
 );
 // normal packer of custom properties
 std::vector<Vertex>				pack_object(
@@ -95,6 +116,29 @@ public:
 		const char *filename,
 		const char *texfilename,
 		const char *normfilename,
+		glm::vec3 c,
+		glm::vec3 _pos,
+		glm::vec3 _rotation,
+		GLfloat _theta,
+		glm::vec3 _scale
+	);
+	Obj::Obj(
+		const char *filename,
+		const char *texfilename,
+		const char *normfilename,
+		const char *heightmapfilename,
+		glm::vec3 c,
+		glm::vec3 _pos,
+		glm::vec3 _rotation,
+		GLfloat _theta,
+		glm::vec3 _scale
+	);
+	Obj::Obj(
+		int k,
+		const char *filename,
+		const char *texfilename,
+		const char *normfilename,
+		const char *heightmapfilename,
 		glm::vec3 c,
 		glm::vec3 _pos,
 		glm::vec3 _rotation,
