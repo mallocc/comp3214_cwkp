@@ -134,6 +134,10 @@ public:
 	)
 	{
 		shader_programs.push_back(LoadShaders(vertex_file_path, fragment_file_path));
+		printf("Loading GLSL program -> %i\n   VERT = %s \n   FRAG = %s\n", 
+			shader_programs[shader_programs.size() - 1], 
+			vertex_file_path, 
+			fragment_file_path);
 		load_program(shader_programs.size() - 1);
 	}
 };

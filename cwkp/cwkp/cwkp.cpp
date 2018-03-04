@@ -6,11 +6,15 @@
 GLSLProgramManager programs;
 VarHandleManager handles;
 
-VarHandle * model_mat_handle, * tex_handle, * normmap_handle;
+VarHandle model_mat_handle, view_mat_handle, proj_mat_handle, tex_handle, normmap_handle;
 
-glm::vec2 window_size(1280,720);
+glm::vec2
+window_size(1280, 720);
+glm::vec3
+eye_position(0,0,5),
+eye_direction;
 
-glm::mat4 view, projection;
+glm::mat4 model, view, projection;
 
 Obj sphere;
 
@@ -39,29 +43,57 @@ static void		key_callback(GLFWwindow* window, int key, int scancode, int action,
 
 void loop()
 {
-	handles.load_handles();
-	sphere.draw(0, model_mat_handle, tex_handle, normmap_handle);
+	//// LOAD GLOBAL HANDLES
+	view_mat_handle.load();
+	proj_mat_handle.load();
 
+	tex_handle.load();
+	normmap_handle.load();	
+
+
+	//// DRAW OBJECTS
+	sphere.draw(
+		0,
+		&model_mat_handle,
+		&tex_handle,
+		&normmap_handle);
 }
 
 //Initilise custom objects
 void			init()
 {
+	//// CREATE GLSL PROGAMS
+	printf("\n");
+	printf("Initialising GLSL programs...\n");
 	programs.add_program("shaders/basic.vert", "shaders/basic.frag");
 
 
-	handles.add_handle(VarHandle("u_tex"));
-	tex_handle = handles.get_last_handle();
-	handles.add_handle(VarHandle("u_norm"));
-	normmap_handle = handles.get_last_handle();
-	handles.add_handle(VarHandle("u_m"));
-	model_mat_handle = handles.get_last_handle();
-	handles.add_handle(VarHandle("u_v", &view));
-	handles.add_handle(VarHandle("u_p", &projection));
-	handles.link_handles(programs.current_program);
 
+	//// CREATE HANDLES
+	printf("\n");
+	printf("Initialising variable handles...\n");
+	model_mat_handle = VarHandle("u_m", &model);
+	model_mat_handle.init(programs.current_program);
+
+	view_mat_handle = VarHandle("u_v", &view);
+	view_mat_handle.init(programs.current_program);
+
+	proj_mat_handle = VarHandle("u_p", &projection);
+	proj_mat_handle.init(programs.current_program);
+
+	tex_handle = VarHandle("u_tex");
+	tex_handle.init(programs.current_program);
+
+	normmap_handle = VarHandle("u_norm");
+	normmap_handle.init(programs.current_program);
+
+
+
+	//// CREATE OBJECTS
+	printf("\n");
+	printf("Initialising objects...\n");
 	// create sphere data for screen A, B and D
-		std::vector<glm::vec3> v = generate_sphere(200, 200);
+	std::vector<glm::vec3> v = generate_sphere(200, 200);
 	std::vector<Vertex> o = pack_object(&v, GEN_DEFAULT, GREY);
 
 	sphere = Obj("","",
@@ -77,6 +109,9 @@ void			init()
 //GL graphics loop
 void			glLoop(void(*graphics_loop)(), GLFWwindow * window)
 {
+	printf("\n");
+	printf("Running GL loop...\n");
+
 	//Main Loop  
 	do
 	{
@@ -88,6 +123,9 @@ void			glLoop(void(*graphics_loop)(), GLFWwindow * window)
 
 		// set clear color
 		glClearColor(0.0f,0.0f,0.0f, 1.);
+
+		projection = glm::perspective(glm::radians(45.0f), (float)window_size.x / (float)window_size.y, 0.001f, 1000.0f);
+		view = glm::lookAt(eye_position, eye_direction, glm::vec3(0,1,0));
 
 		// call the graphics loop
 		graphics_loop();
@@ -108,6 +146,9 @@ void			glLoop(void(*graphics_loop)(), GLFWwindow * window)
 	} //Check if the ESC or Q key had been pressed or if the window had been closed  
 	while (!glfwWindowShouldClose(window));
 
+	printf("\n");
+	printf("Window has closed. Application will now exit.\n");
+
 	//Close OpenGL window and terminate GLFW  
 	glfwDestroyWindow(window);
 	//Finalize and clean up GLFW  
@@ -123,6 +164,7 @@ GLFWwindow *				initWindow()
 	//Set the error callback  
 	glfwSetErrorCallback(error_callback);
 
+	printf("Initialising GLFW...\n");
 	//Initialize GLFW  
 	if (!glfwInit())
 	{
@@ -135,9 +177,9 @@ GLFWwindow *				initWindow()
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 #endif
 
+	printf("Creating window...\n");
 	//Create a window and create its OpenGL context  
 	window = glfwCreateWindow(window_size.x, window_size.y, "Test Window", NULL, NULL);
-
 	//If the window couldn't be created  
 	if (!window)
 	{
@@ -146,15 +188,16 @@ GLFWwindow *				initWindow()
 		exit(EXIT_FAILURE);
 	}
 
+	printf("Setting window context...\n");
 	//This function makes the context of the specified window current on the calling thread.   
 	glfwMakeContextCurrent(window);
 
 	//Sets the key callback  
 	glfwSetKeyCallback(window, key_callback);
 
+	printf("Initialising GLEW...\n");
 	//Initialize GLEW  
 	GLenum err = glewInit();
-
 	//If GLEW hasn't initialized  
 	if (err != GLEW_OK)
 	{

@@ -348,7 +348,8 @@ Obj::Obj(
 	std::vector< glm::vec3 > vertices;
 	std::vector< Vertex > o;
 
-	tinyobj::LoadObj(shapes, materials, filename, NULL);
+	std::string obj_err =
+		tinyobj::LoadObj(shapes, materials, filename, NULL);
 
 	for (int i = 0; i < shapes.size(); i++)
 		for (int j = 0; j < shapes[i].mesh.indices.size(); j++)
@@ -359,6 +360,8 @@ Obj::Obj(
 			));
 
 	std::vector<Vertex> data = pack_object(&vertices, GEN_ALL | GEN_COLOR, c);
+
+	printf("New object file loaded: \n   [ \n%s \n   ]\n   Vertex count: %i\n", obj_err, data.size());
 
 	pos = _pos;
 	rotation = _rotation;
@@ -383,7 +386,8 @@ Obj::Obj(
 	std::vector< glm::vec3 > vertices;
 	std::vector< Vertex > o;
 
-	tinyobj::LoadObj(shapes, materials, filename, NULL);
+	std::string obj_err =
+		tinyobj::LoadObj(shapes, materials, filename, NULL);
 
 	for (int i = 0; i < shapes.size(); i++)
 		for (int j = 0; j < shapes[i].mesh.indices.size(); j++)
@@ -394,6 +398,8 @@ Obj::Obj(
 			));
 
 	std::vector<Vertex> data = pack_object(&vertices, GEN_ALL | GEN_COLOR, c);
+
+	printf("New object file loaded: \n   [ \n%s \n   ]\n   Vertex count: %i\n", obj_err, data.size());
 
 	pos = _pos;
 	rotation = _rotation;
@@ -413,6 +419,8 @@ Obj::Obj(
 	glm::vec3 _scale
 )
 {
+	printf("New primitive object loaded:\n   Vertex count: %i\n", data.size());
+
 	pos = _pos;
 	rotation = _rotation;
 	theta = _theta;
@@ -427,9 +435,25 @@ void Obj::load_textures(
 )
 {
 	if (texfilename != "")
+	{
 		tex = load_texture_from_image(texfilename);
+		printf("   Texture file:   %s -> \n", texfilename, tex);
+	}
+	else
+	{
+		printf("   No texture loaded\n");
+
+	}
+
 	if (normfilename != "")
+	{
 		norm = load_texture_from_image(normfilename);
+		printf("   NormalMap file: %s -> \n", normfilename, norm);
+	}
+	else
+	{
+		printf("   No normal map loaded\n");
+	}
 }
 void Obj::init(std::vector<Vertex> * d)
 {
@@ -455,6 +479,7 @@ void Obj::init(std::vector<Vertex> * d)
 		(const GLvoid*)offsetof(struct Vertex, tangent));
 	glEnableVertexAttribArray(4);
 	glBindVertexArray(0);
+	printf("   Buffered VAO -> %i\n", vao);
 	glFlush();
 }
 void Obj::draw(

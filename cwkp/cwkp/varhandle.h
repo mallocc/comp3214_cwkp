@@ -28,6 +28,7 @@ public:
 	VarHandle(const char * var_name_)
 	{
 		var_name = var_name_;
+		handle_type = NO_HANDLE;
 	}
 	VarHandle(const char * var_name_, glm::mat4 * data)
 	{
@@ -57,6 +58,7 @@ public:
 	void init(GLuint program)
 	{
 		handle = glGetUniformLocation(program, var_name);
+		printf("Linkning varibale %s -> GLSL PROG: %i\n", var_name, program);
 	}
 
 	void load()
@@ -128,8 +130,8 @@ public:
 			v.init(prog);
 	}
 
-	VarHandle * get_last_handle()
+	VarHandle get_last_handle()
 	{
-		return &handles[handles.size() - 1];
+		return handles[handles.size() - 1];
 	}
 };
