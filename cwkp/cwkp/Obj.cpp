@@ -68,22 +68,24 @@ GLfloat cube_v_b[] = {
 
 std::vector<glm::vec3>			subdivide(std::vector<glm::vec3> v)
 {
-	std::vector<glm::vec3> V;
+	std::vector<glm::vec3> nv;
 	for (int i = 0; i < v.size(); i += 3)
 	{
-		glm::vec3 n = v[i+1] - v[i];
-		n /= 2.0f;
-		n = v[i] + n;
+		glm::vec3
+			a = v[i],
+			b = v[i + 1],
+			c = v[i + 2],
+			n = (a - b) / 2.0f + b;
 
-		V.push_back(n);
-		V.push_back(v[i]);
-		V.push_back(v[i + 1]);
+		nv.push_back(n);
+		nv.push_back(a);
+		nv.push_back(b);
 
-		V.push_back(n);
-		V.push_back(v[i + 1]);
-		V.push_back(v[i + 2]);
+		nv.push_back(n);
+		nv.push_back(b);
+		nv.push_back(c);
 	}
-	return V;
+	return nv;
 }
 
 std::vector<glm::vec3>			generate_cube()
@@ -424,40 +426,44 @@ std::vector<Vertex>				pack_object(
 )
 {
 	std::vector<Vertex> object;
-	std::vector<glm::vec3> n, c, t, V = *v;
+	std::vector<glm::vec3> n, c, t, nv = *v;
 	std::vector<glm::vec2> uv;
 
 	if (flags == NULL)
 		flags = GEN_DEFAULT;
 
+	
 	if ((flags & GEN_NORMS) == GEN_NORMS)
-		n = generate_normals(*v);
-	if ((flags & GEN_COLOR) == GEN_COLOR)
-		c = generate_colour_buffer(color, v->size());
-	if ((flags & GEN_COLOR_RAND) == GEN_COLOR_RAND)
-		c = random_colour_buffer(color, v->size());
-	if ((flags & GEN_COLOR_RAND_I) == GEN_COLOR_RAND_I)
-		c = random_intesity_colour_buffer(color, v->size());
-	if ((flags & GEN_UVS_POLAR) == GEN_UVS_POLAR)
-		uv = generate_polar_uvs(*v);
-	if ((flags & GEN_UVS_RECTS) == GEN_UVS_RECTS)
-		uv = generate_repeated_rect_uvs(*v);
-	if ((flags & GEN_UVS_SPHERE) == GEN_UVS_SPHERE)
-		uv = generate_sphereical_uvs(*v);
-	if ((flags & GEN_TANGS) == GEN_TANGS)
-		t = generate_tangents(*v);
-
+		n = generate_normals(nv);
 
 	if ((flags & GEN_MAP_HEIGHTS) == GEN_MAP_HEIGHTS)
-		V = generate_map_heights(*v, n, image, k);
+		nv = generate_map_heights(nv, n, image, k);
 	if ((flags & GEN_UV_HEIGHTS) == GEN_UV_HEIGHTS)
-		V = generate_map_heights_from_uvs(*v, n, uv, image, k);
+		nv = generate_map_heights_from_uvs(nv, n, uv, image, k);
 
-	for (int i = 0; i < v->size(); ++i)
+	if ((flags & GEN_NORMS) == GEN_NORMS)
+		n = generate_normals(nv);
+	if ((flags & GEN_COLOR) == GEN_COLOR)
+		c = generate_colour_buffer(color, nv.size());
+	if ((flags & GEN_COLOR_RAND) == GEN_COLOR_RAND)
+		c = random_colour_buffer(color, nv.size());
+	if ((flags & GEN_COLOR_RAND_I) == GEN_COLOR_RAND_I)
+		c = random_intesity_colour_buffer(color, nv.size());
+	if ((flags & GEN_UVS_POLAR) == GEN_UVS_POLAR)
+		uv = generate_polar_uvs(nv);
+	if ((flags & GEN_UVS_RECTS) == GEN_UVS_RECTS)
+		uv = generate_repeated_rect_uvs(nv);
+	if ((flags & GEN_UVS_SPHERE) == GEN_UVS_SPHERE)
+		uv = generate_sphereical_uvs(nv);
+	if ((flags & GEN_TANGS) == GEN_TANGS)
+		t = generate_tangents(nv);
+	
+
+	for (int i = 0; i < nv.size(); ++i)
 	{
 		Vertex vert;
-		if (V.size() != 0)
-			vert.position = V[i];
+		if (nv.size() != 0)
+			vert.position = nv[i];
 		if (c.size() != 0)
 			vert.color = c[i];
 		if (n.size() != 0)
