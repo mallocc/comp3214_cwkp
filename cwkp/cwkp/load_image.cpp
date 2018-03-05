@@ -15,6 +15,17 @@ GLuint load_texture_from_image(const char *fname)
 		fprintf(stderr, "Failure reason %s\n", error);
 		return GL_TEXTURE0;
 	}
+
+	if (n == 1)
+	{
+		unsigned char *data2 = new unsigned char[w*h * 3];
+		for (int i = 0; i < w*h; ++i)
+			for (int j = 0; j < 3; ++j)
+				data2[i*3+j] = data[i];
+		delete data;
+		data = data2;
+	}
+
 	GLuint tex = 1;
 	glGenTextures(1, &tex);
 	glBindTexture(GL_TEXTURE_2D, tex);
@@ -28,6 +39,7 @@ GLuint load_texture_from_image(const char *fname)
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
 	glGenerateMipmap(GL_TEXTURE_2D);
+
 	delete data;
 	return tex;
 }

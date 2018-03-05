@@ -255,43 +255,21 @@ std::vector<glm::vec3>			generate_normals(std::vector<glm::vec3> v)
 	}
 	return n;
 }
-std::vector<glm::vec3>			generate_map_heights(std::vector<glm::vec3> v, std::vector<glm::vec3> n, image_data * image, float k)
-{
-	std::vector<glm::vec3> V;
-	for (int i = 0; i < v.size(); i+=3)
-	{
-		glm::vec3 nm = glm::normalize(glm::cross(v[i + 1] - v[i], v[i + 2] - v[i]));
-		for (int j = 0; j < 3; ++j)
-		{
-			glm::vec2 uv = glm::vec2((atan2(v[i + j].x, v[i + j].y) / 3.1415926f + 1.0f) * 0.5, (asin(v[i+j].z) / 3.1415926 + 0.5));
-			int x = uv.x * image->w;
-			int y = uv.y * image->h;
-			int c = x * image->n + (y * image->n * image->w);
-			c = glm::clamp(c, 0, image->w*image->h*image->n - 2);
-			float r = (image->data[c] + image->data[c+1] + image->data[c+2]) / (256.0f*3.0f);
-			r = (r - 1.0f * k);
-			r *= k;
-			glm::vec3 nv = nm * (Dot(v[i+j],nm)) * r + v[i+j];
-			V.push_back(nv);
-		}
-	}
-	return V;
-}
 std::vector<glm::vec3>			generate_map_heights_from_uvs(std::vector<glm::vec3> v, std::vector<glm::vec3> n, std::vector<glm::vec2> uv, image_data * image, float k)
 {
 	std::vector<glm::vec3> V;
-	for (int i = 0; i < uv.size(); i += 3)
+	for (int i = 0; i < v.size(); i += 3)
 	{
 		glm::vec3 nm = glm::normalize(glm::cross(v[i + 1] - v[i], v[i + 2] - v[i]));
 		for (int j = 0; j < 3; ++j)
 		{
-			int x = uv[i].x * image->w;
-			int y = uv[i].y * image->h;
+			glm::vec2 uvt = uv[i+j];
+			int x = uvt.x * image->w;
+			int y = uvt.y * image->h;
 			int c = x * image->n + (y * image->n * image->w);
 			c = glm::clamp(c, 0, image->w*image->h*image->n - 2);
 			float r = (image->data[c] + image->data[c + 1] + image->data[c + 2]) / (256.0f*3.0f);
-			r = (r - 1.0f * k);
-			r *= k;
+			r = (r - 1.0f) * k;
 			glm::vec3 nv = nm * (Dot(v[i + j], nm)) * r + v[i + j];
 			V.push_back(nv);
 		}
@@ -377,34 +355,35 @@ std::vector<Vertex>				pack_object(
 )
 {
 	std::vector<Vertex> object;
-	std::vector<glm::vec3> n, c, t;
+	std::vector<glm::vec3> n, c, t, nv = *v;
 	std::vector<glm::vec2> uv;
 
 	if (flags == NULL)
 		flags = GEN_DEFAULT;
 
 	if ((flags & GEN_NORMS) == GEN_NORMS)
-		n = generate_normals(*v);
+		n = generate_normals(nv);
 	if ((flags & GEN_COLOR) == GEN_COLOR)
-		c = generate_colour_buffer(color, v->size());
+		c = generate_colour_buffer(color, nv.size());
 	if ((flags & GEN_COLOR_RAND) == GEN_COLOR_RAND)
-		c = random_colour_buffer(color, v->size());
+		c = random_colour_buffer(color, nv.size());
 	if ((flags & GEN_COLOR_RAND_I) == GEN_COLOR_RAND_I)
-		c = random_intesity_colour_buffer(color, v->size());
+		c = random_intesity_colour_buffer(color, nv.size());
 	if ((flags & GEN_UVS_POLAR) == GEN_UVS_POLAR)
-		uv = generate_polar_uvs(*v);
+		uv = generate_polar_uvs(nv);
 	if ((flags & GEN_UVS_RECTS) == GEN_UVS_RECTS)
-		uv = generate_repeated_rect_uvs(*v);
+		uv = generate_repeated_rect_uvs(nv);
 	if ((flags & GEN_UVS_SPHERE) == GEN_UVS_SPHERE)
-		uv = generate_sphereical_uvs(*v);
+		uv = generate_sphereical_uvs(nv);
 	if ((flags & GEN_TANGS) == GEN_TANGS)
-		t = generate_tangents(*v);
+		t = generate_tangents(nv);
 
-	for (int i = 0; i < v->size(); ++i)
+
+	for (int i = 0; i < nv.size(); ++i)
 	{
 		Vertex vert;
-		if (v->size() != 0)
-			vert.position = (*v)[i];
+		if (nv.size() != 0)
+			vert.position = nv[i];
 		if (c.size() != 0)
 			vert.color = c[i];
 		if (n.size() != 0)
@@ -437,8 +416,6 @@ std::vector<Vertex>				pack_object(
 		n = generate_normals(nv);
 
 	if ((flags & GEN_MAP_HEIGHTS) == GEN_MAP_HEIGHTS)
-		nv = generate_map_heights(nv, n, image, k);
-	if ((flags & GEN_UV_HEIGHTS) == GEN_UV_HEIGHTS)
 		nv = generate_map_heights_from_uvs(nv, n, uv, image, k);
 
 	if ((flags & GEN_NORMS) == GEN_NORMS)
@@ -543,89 +520,6 @@ Obj::Obj(
 	init(&data);
 }
 Obj::Obj(
-	const char *filename,
-	const char *texfilename,
-	const char *normfilename,
-	glm::vec3 c,
-	glm::vec3 _pos,
-	glm::vec3 _rotation,
-	GLfloat _theta,
-	glm::vec3 _scale
-)
-{
-	std::vector<tinyobj::shape_t> shapes;
-	std::vector<tinyobj::material_t> materials;
-	std::vector< glm::vec3 > vertices;
-	std::vector< Vertex > o;
-
-	std::string obj_err =
-		tinyobj::LoadObj(shapes, materials, filename, NULL);
-
-	for (int i = 0; i < shapes.size(); i++)
-		for (int j = 0; j < shapes[i].mesh.indices.size(); j++)
-			vertices.push_back(glm::vec3(
-				shapes[i].mesh.positions[shapes[i].mesh.indices[j] * 3],
-				shapes[i].mesh.positions[shapes[i].mesh.indices[j] * 3 + 1],
-				shapes[i].mesh.positions[shapes[i].mesh.indices[j] * 3 + 2]
-			));
-
-	std::vector<Vertex> data = pack_object(&vertices, GEN_ALL | GEN_COLOR, c);
-
-	printf("New object file loaded: \n   [ \n%s \n   ]\n   Vertex count: %i\n", obj_err, data.size());
-
-	pos = _pos;
-	rotation = _rotation;
-	theta = _theta;
-	scale = _scale;
-
-	load_textures(texfilename, normfilename);
-	init(&data);
-}
-Obj::Obj(
-	const char *filename,
-	const char *texfilename,
-	const char *normfilename,
-	const char *heightmapfilename,
-	glm::vec3 c,
-	glm::vec3 _pos,
-	glm::vec3 _rotation,
-	GLfloat _theta,
-	glm::vec3 _scale
-)
-{
-	std::vector<tinyobj::shape_t> shapes;
-	std::vector<tinyobj::material_t> materials;
-	std::vector< glm::vec3 > vertices;
-	std::vector< Vertex > o;
-
-	std::string obj_err =
-		tinyobj::LoadObj(shapes, materials, filename, NULL);
-
-	for (int i = 0; i < shapes.size(); i++)
-		for (int j = 0; j < shapes[i].mesh.indices.size(); j++)
-			vertices.push_back(glm::vec3(
-				shapes[i].mesh.positions[shapes[i].mesh.indices[j] * 3],
-				shapes[i].mesh.positions[shapes[i].mesh.indices[j] * 3 + 1],
-				shapes[i].mesh.positions[shapes[i].mesh.indices[j] * 3 + 2]
-			));
-
-	int flags = GEN_ALL | GEN_COLOR;
-	if (heightmapfilename != "")
-		flags = GEN_ALL | GEN_COLOR | GEN_UV_HEIGHTS;
-
-	std::vector<Vertex> data = pack_object(&vertices, flags, c);
-
-	printf("New object file loaded: \n   [ \n%s \n   ]\n   Vertex count: %i\n", obj_err, data.size());
-
-	pos = _pos;
-	rotation = _rotation;
-	theta = _theta;
-	scale = _scale;
-
-	load_textures(texfilename, normfilename);
-	init(&data);
-}
-Obj::Obj(
 	int k,
 	const char *filename,
 	const char *texfilename,
@@ -656,7 +550,7 @@ Obj::Obj(
 
 	int flags = GEN_ALL | GEN_COLOR;
 	if (heightmapfilename != "")
-		flags = GEN_ALL | GEN_COLOR | GEN_UV_HEIGHTS;
+		flags = GEN_ALL | GEN_COLOR | GEN_MAP_HEIGHTS;
 
 	for (int i = 0; i < k; ++i)
 		vertices = subdivide(vertices);
@@ -670,12 +564,13 @@ Obj::Obj(
 	theta = _theta;
 	scale = _scale;
 
-	load_textures(texfilename, normfilename);
+	load_textures(texfilename, normfilename, heightmapfilename);
 	init(&data);
 }
 Obj::Obj(
 	const char *texfilename, 
 	const char *normfilename,
+	const char *heightfilename,
 	std::vector<Vertex>	data,
 	glm::vec3 _pos,
 	glm::vec3 _rotation,
@@ -690,12 +585,13 @@ Obj::Obj(
 	theta = _theta;
 	scale = _scale;
 
-	load_textures(texfilename, normfilename);
+	load_textures(texfilename, normfilename, heightfilename);
 	init(&data);
 }
 void Obj::load_textures(
 	const char *texfilename, 
-	const char *normfilename
+	const char *normfilename,
+	const char *heightfilename
 )
 {
 	if (texfilename != "")
@@ -717,6 +613,16 @@ void Obj::load_textures(
 	else
 	{
 		printf("   No normal map loaded\n");
+	}
+
+	if (heightfilename != "")
+	{
+		height = load_texture_from_image(heightfilename);
+		printf("   HeightMap file: %s -> \n", heightfilename, height);
+	}
+	else
+	{
+		printf("   No height map loaded\n");
 	}
 }
 void Obj::init(std::vector<Vertex> * d)
@@ -750,7 +656,8 @@ void Obj::draw(
 	int wire_frame, 
 	VarHandle *model, 
 	VarHandle *texture_handle,
-	VarHandle *normalmap_handle
+	VarHandle *normalmap_handle,
+	VarHandle *heightmap_handle
 )
 {
 	glm::mat4 m =
@@ -759,24 +666,55 @@ void Obj::draw(
 		glm::scale(glm::mat4(1.), scale);
 	model->load(m);
 
-	draw_array(wire_frame, texture_handle, normalmap_handle);
+	draw_array(wire_frame, texture_handle, normalmap_handle, heightmap_handle);
 }
 void Obj::draw_array(
 	int wire_frame, 
 	VarHandle *texture_handle, 
-	VarHandle *normalmap_handle)
+	VarHandle *normalmap_handle,
+	VarHandle *heightmap_handle)
 {
-	load_texture_handle(texture_handle);
-	load_normal_handle(normalmap_handle);
+	// load the textures
+	if (tex != GL_TEXTURE0)
+	{
+		load_texture_handle(texture_handle);
+		glActiveTexture(GL_TEXTURE0 + tex);
+		glBindTexture(GL_TEXTURE_2D, tex);
+	}
+	if (norm != GL_TEXTURE0)
+	{
+		load_normal_handle(normalmap_handle);
+		glActiveTexture(GL_TEXTURE0 + norm);
+		glBindTexture(GL_TEXTURE_2D, norm);
+	}
+	if (height != GL_TEXTURE0)
+	{
+		load_height_handle(heightmap_handle);
+		glActiveTexture(GL_TEXTURE0 + height);
+		glBindTexture(GL_TEXTURE_2D, height);
+	}
 
-	glActiveTexture(GL_TEXTURE0 + tex);
-	glBindTexture(GL_TEXTURE_2D, tex);
-	glActiveTexture(GL_TEXTURE0 + norm);
-	glBindTexture(GL_TEXTURE_2D, norm);
-
+	// draw the data
 	glBindVertexArray(vao);
 	glDrawArrays(wire_frame ? GL_LINE_LOOP : GL_TRIANGLES, 0, data_size);
 	glBindVertexArray(0);
+
+	// unload the texture
+	if (tex != GL_TEXTURE0)
+	{
+		glActiveTexture(GL_TEXTURE0 + tex);
+		glBindTexture(GL_TEXTURE_2D, GL_TEXTURE0);
+	}
+	if (norm != GL_TEXTURE0)
+	{
+		glActiveTexture(GL_TEXTURE0 + norm);
+		glBindTexture(GL_TEXTURE_2D, GL_TEXTURE0);
+	}
+	if (height != GL_TEXTURE0)
+	{
+		glActiveTexture(GL_TEXTURE0 + height);
+		glBindTexture(GL_TEXTURE_2D, GL_TEXTURE0);
+	}
 
 	glFinish();
 }
@@ -799,7 +737,8 @@ void CompositeObj::draw(
 	int wire_frame,
 	VarHandle *model,
 	VarHandle *texture_handle,
-	VarHandle *normalmap_handle
+	VarHandle *normalmap_handle,
+	VarHandle *heightmap_handle
 )
 {
 	glm::mat4 comp_m = glm::translate(glm::mat4(1.), pos) * glm::rotate(glm::mat4(1.), theta, rotation) * glm::scale(glm::mat4(1.), scale);
@@ -812,7 +751,7 @@ void CompositeObj::draw(
 			glm::scale(glm::mat4(1.), scale);
 		m = comp_m * m;
 		model->load(m);
-		e.draw_array(wire_frame, texture_handle, normalmap_handle);
+		e.draw_array(wire_frame, texture_handle, normalmap_handle, heightmap_handle);
 	}
 
 }

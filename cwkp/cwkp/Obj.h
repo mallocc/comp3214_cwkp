@@ -14,7 +14,6 @@
 #define GEN_UVS_RECTS 0x8
 #define GEN_UVS_SPHERE 0x80
 #define GEN_MAP_HEIGHTS 0x100
-#define GEN_UV_HEIGHTS 0x200
 #define GEN_ALL (GEN_NORMS | GEN_TANGS | GEN_UVS_POLAR)
 #define GEN_COLOR 0x10
 #define GEN_COLOR_RAND 0x20
@@ -32,7 +31,6 @@ std::vector<glm::vec3>			generate_rect();
 std::vector<glm::vec3>			generate_rects(int w, int h);
 std::vector<glm::vec2>			generate_uv_rects(int w, int h);
 std::vector<glm::vec3>			generate_normals(std::vector<glm::vec3> v);
-std::vector<glm::vec3>			generate_map_heights(std::vector<glm::vec3> v, std::vector<glm::vec3> n, image_data * image, float k);
 std::vector<glm::vec3>			generate_map_heights_from_uvs(std::vector<glm::vec3> v, std::vector<glm::vec3> n, std::vector<glm::vec2> uv, image_data * image, float k);
 std::vector<glm::vec3>			generate_tangents(std::vector<glm::vec3> v);
 std::vector<glm::vec2>			generate_polar_uvs(std::vector<glm::vec3> v);
@@ -73,7 +71,8 @@ private:
 		vao, 
 		buffer, 
 		tex = GL_TEXTURE0, 
-		norm = GL_TEXTURE0;
+		norm = GL_TEXTURE0,
+		height = GL_TEXTURE0;
 	int 
 		data_size = 0;
 
@@ -85,12 +84,17 @@ private:
 	{
 		handle->load(norm);
 	}
+	void load_height_handle(VarHandle * handle)
+	{
+		handle->load(height);
+	}
 
 	void init(std::vector<Vertex>  * d);
 
 	void load_textures(
-		const char *texfilename, 
-		const char *normfilename
+		const char *texfilename,
+		const char *normfilename,
+		const char *heightfilename
 	);
 
 public:
@@ -112,27 +116,6 @@ public:
 		GLfloat _theta,
 		glm::vec3 _scale
 	);
-	Obj(
-		const char *filename,
-		const char *texfilename,
-		const char *normfilename,
-		glm::vec3 c,
-		glm::vec3 _pos,
-		glm::vec3 _rotation,
-		GLfloat _theta,
-		glm::vec3 _scale
-	);
-	Obj::Obj(
-		const char *filename,
-		const char *texfilename,
-		const char *normfilename,
-		const char *heightmapfilename,
-		glm::vec3 c,
-		glm::vec3 _pos,
-		glm::vec3 _rotation,
-		GLfloat _theta,
-		glm::vec3 _scale
-	);
 	Obj::Obj(
 		int k,
 		const char *filename,
@@ -148,6 +131,7 @@ public:
 	Obj(
 		const char *texfilename,
 		const char *normfilename,
+		const char *heightfilename,
 		std::vector<Vertex>	data,
 		glm::vec3 _pos,
 		glm::vec3 _rotation,
@@ -159,12 +143,14 @@ public:
 		int wire_frame,
 		VarHandle *model,
 		VarHandle *texture_handle,
-		VarHandle *normalmap_handle
+		VarHandle *normalmap_handle,
+		VarHandle *heightmap_handle
 	);
-	void draw_array(
-		int wire_frame, 
+	void Obj::draw_array(
+		int wire_frame,
 		VarHandle *texture_handle,
-		VarHandle *normalmap_handle
+		VarHandle *normalmap_handle,
+		VarHandle *heightmap_handle
 	);
 
 };
@@ -195,7 +181,8 @@ public:
 		int wire_frame,
 		VarHandle *model,
 		VarHandle *texture_handle,
-		VarHandle *normalmap_handle
+		VarHandle *normalmap_handle,
+		VarHandle *heightmap_handle
 	);
 	void add(Obj e);
 };
