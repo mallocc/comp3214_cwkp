@@ -108,24 +108,24 @@ btRigidBody* SetSphere(float size, btTransform T) {
 	return nullptr;
 }
 
-btRigidBody* SetCube(float size, btTransform T) {
-	btCollisionShape* fallshape = new btBoxShape(size);
-	btDefaultMotionState* fallMotionState = new btDefaultMotionState(T);
-	btScalar mass = 1;
-	btVector3 fallInertia(0, 0, 0);
-	fallshape->calculateLocalInertia(mass, fallInertia);
-	btRigidBody::btRigidBodyConstructionInfo fallRigidBodyCI(mass, fallMotionState, fallshape, fallInertia);
-	btRigidBody* fallRigidBody = new btRigidBody(fallRigidBodyCI);
-	fallRigidBody->setLinearVelocity(btVector3(randf(), randf(), randf()));
-	//fallRigidBody->applyCentralImpulse(btVector3(0,1,0));
-	fallRigidBody->setRestitution(COE);
-	fallRigidBody->setFriction(0.0f);
-	fallRigidBody->setRollingFriction(0.0f);
-	fallRigidBody->setDamping(0.0f, 0.0f);
-	dynamicsWorld->addRigidBody(fallRigidBody);
-	return fallRigidBody;
-	return nullptr;
-}
+//btRigidBody* SetCube(float size, btTransform T) {
+//	btCollisionShape* fallshape = new btBoxShape(size);
+//	btDefaultMotionState* fallMotionState = new btDefaultMotionState(T);
+//	btScalar mass = 1;
+//	btVector3 fallInertia(0, 0, 0);
+//	fallshape->calculateLocalInertia(mass, fallInertia);
+//	btRigidBody::btRigidBodyConstructionInfo fallRigidBodyCI(mass, fallMotionState, fallshape, fallInertia);
+//	btRigidBody* fallRigidBody = new btRigidBody(fallRigidBodyCI);
+//	fallRigidBody->setLinearVelocity(btVector3(randf(), randf(), randf()));
+//	//fallRigidBody->applyCentralImpulse(btVector3(0,1,0));
+//	fallRigidBody->setRestitution(COE);
+//	fallRigidBody->setFriction(0.0f);
+//	fallRigidBody->setRollingFriction(0.0f);
+//	fallRigidBody->setDamping(0.0f, 0.0f);
+//	dynamicsWorld->addRigidBody(fallRigidBody);
+//	return fallRigidBody;
+//	return nullptr;
+//}
 
 
 glm::vec3 bullet_step(int i) {
@@ -172,7 +172,7 @@ void loop()
 
 	sphere.pos = bullet_step(0);
 	sphere2.pos = bullet_step(1);
-	cube.pos = bullet_step(2);
+	//cube.pos = bullet_step(2);
 
 	//// DRAW OBJECTS
 
@@ -261,7 +261,7 @@ void init_bullet()
 	*/
 	MovingBits.push_back(SetSphere(1, btTransform(btQuaternion(0,0,0,1),btVector3(sphere.pos.x,sphere.pos.y,sphere.pos.z))));
 	MovingBits.push_back(SetSphere(1, btTransform(btQuaternion(0,0,0,1),btVector3(sphere2.pos.x,sphere2.pos.y,sphere2.pos.z))));
-	MovingBits.push_back(SetCube(1, btTransform(btQuaternion(0,0,0,1),btVector3(cube.pos.x,cube.pos.y,cube.pos.z))));
+	//MovingBits.push_back(SetCube(1, btTransform(btQuaternion(0,0,0,1),btVector3(cube.pos.x,cube.pos.y,cube.pos.z))));
 }
 
 //Initilise custom objects
