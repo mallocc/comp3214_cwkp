@@ -5,32 +5,24 @@
 
 #include <btBulletDynamicsCommon.h>
 
-//Returns random float
-inline float		randf()
-{
-	return static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
-}
 
+
+// bullet declarations
 btBroadphaseInterface* broadphase;
 btDefaultCollisionConfiguration* collisionConfiguration;
 btCollisionDispatcher* dispatcher;
 btSequentialImpulseConstraintSolver* solver;
 btDiscreteDynamicsWorld* dynamicsWorld;
 std::vector<btRigidBody*> MovingBits; // so that can get at all bits
-std::vector<btRigidBody*> StaticBits; // especially during clean up.
+
+
 
 GLSLProgramManager	programs;
 
 VarHandle
-	model_mat_handle, 
-	view_mat_handle, 
-	proj_mat_handle, 
-	tex_handle, 
-	normmap_handle,
-	heightmap_handle,
-	light_handles[5],
-	ambient_color_handle, 
-	eye_dir_handle;
+	model_mat_handle,
+	view_mat_handle,
+	proj_mat_handle;
 
 glm::vec2
 	window_size(1280, 720);
@@ -48,10 +40,14 @@ glm::mat4
 Obj
 	sphere,
 	sphere2,
-	cube;
+	cube,
+	container;
 
-
-Light lights = { glm::vec3(0,5,10),glm::vec3(1,1,1),100,0.8,100 };
+//Returns random float
+inline float		randf()
+{
+	return static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+}
 
 //Error callback  
 static void		error_callback(int error, const char* description)
@@ -97,46 +93,45 @@ btRigidBody* SetSphere(float size, btTransform T) {
 	fallshape->calculateLocalInertia(mass, fallInertia);
 	btRigidBody::btRigidBodyConstructionInfo fallRigidBodyCI(mass, fallMotionState, fallshape, fallInertia);
 	btRigidBody* fallRigidBody = new btRigidBody(fallRigidBodyCI);
-	fallRigidBody->setLinearVelocity(btVector3(randf(), randf(), randf()));
-	//fallRigidBody->applyCentralImpulse(btVector3(0,1,0));
+	fallRigidBody->setLinearVelocity(btVector3(randf(), randf(), randf()) * 100.0f);
 	fallRigidBody->setRestitution(COE);
-	fallRigidBody->setFriction(0.0f);
-	fallRigidBody->setRollingFriction(0.0f);
-	fallRigidBody->setDamping(0.0f, 0.0f);
+	//fallRigidBody->setFriction(0.0f);
+	//fallRigidBody->setRollingFriction(0.0f);
+	//fallRigidBody->setDamping(0.0f, 0.0f);
 	dynamicsWorld->addRigidBody(fallRigidBody);
 	return fallRigidBody;
 	return nullptr;
 }
 
-//btRigidBody* SetCube(float size, btTransform T) {
-//	btCollisionShape* fallshape = new btBoxShape(size);
-//	btDefaultMotionState* fallMotionState = new btDefaultMotionState(T);
-//	btScalar mass = 1;
-//	btVector3 fallInertia(0, 0, 0);
-//	fallshape->calculateLocalInertia(mass, fallInertia);
-//	btRigidBody::btRigidBodyConstructionInfo fallRigidBodyCI(mass, fallMotionState, fallshape, fallInertia);
-//	btRigidBody* fallRigidBody = new btRigidBody(fallRigidBodyCI);
-//	fallRigidBody->setLinearVelocity(btVector3(randf(), randf(), randf()));
-//	//fallRigidBody->applyCentralImpulse(btVector3(0,1,0));
-//	fallRigidBody->setRestitution(COE);
-//	fallRigidBody->setFriction(0.0f);
-//	fallRigidBody->setRollingFriction(0.0f);
-//	fallRigidBody->setDamping(0.0f, 0.0f);
-//	dynamicsWorld->addRigidBody(fallRigidBody);
-//	return fallRigidBody;
-//	return nullptr;
-//}
+btRigidBody* SetCube(btVector3 size, btTransform T) {
+	btCollisionShape* fallshape = new btBoxShape(size);
+	btDefaultMotionState* fallMotionState = new btDefaultMotionState(T);
+	btScalar mass = 1;
+	btVector3 fallInertia(0, 0, 0);
+	fallshape->calculateLocalInertia(mass, fallInertia);
+	btRigidBody::btRigidBodyConstructionInfo fallRigidBodyCI(mass, fallMotionState, fallshape, fallInertia);
+	btRigidBody* fallRigidBody = new btRigidBody(fallRigidBodyCI);
+	fallRigidBody->setLinearVelocity(btVector3(randf(), randf(), randf()) * 100.0f);
+	fallRigidBody->setRestitution(COE);
+	//fallRigidBody->setFriction(0.0f);
+	//fallRigidBody->setRollingFriction(0.0f);
+	//fallRigidBody->setDamping(0.0f, 0.0f);
+	dynamicsWorld->addRigidBody(fallRigidBody);
+	return fallRigidBody;
+	return nullptr;
+}
 
 
-glm::vec3 bullet_step(int i) {
+void bullet_step(int i, Obj * obj) {
 	btTransform trans;
 	btRigidBody* moveRigidBody;
 	int n = MovingBits.size();
 	moveRigidBody = MovingBits[i];
-	dynamicsWorld->stepSimulation(1 / 60.f / n, 10);
 	moveRigidBody->getMotionState()->getWorldTransform(trans);
-	return glm::vec3(trans.getOrigin().getX(), trans.getOrigin().getY(), trans.getOrigin().getZ());
-	return glm::vec3();
+	btQuaternion rot = moveRigidBody->getCenterOfMassTransform().getRotation();
+	obj->pos = glm::vec3(trans.getOrigin().getX(), trans.getOrigin().getY(), trans.getOrigin().getZ());
+	obj->rotation = glm::vec3(rot.getAxis().getX(), rot.getAxis().getY(), rot.getAxis().getZ());
+	obj->theta = rot.getAngle();
 }
 
 void bullet_close() {
@@ -163,22 +158,20 @@ void loop()
 	//// LOAD GLOBAL HANDLES
 	view_mat_handle.load();
 	proj_mat_handle.load();
-	for (VarHandle v : light_handles)
-		v.load();
-	ambient_color_handle.load();
-	eye_dir_handle.load();
 
 	//// BULLET UPDATE
+	dynamicsWorld->stepSimulation(0.01, 5);
 
-	sphere.pos = bullet_step(0);
-	sphere2.pos = bullet_step(1);
-	//cube.pos = bullet_step(2);
+	bullet_step(0, &sphere);
+	bullet_step(1, &sphere2);
+	bullet_step(2, &cube);
 
 	//// DRAW OBJECTS
 
-	sphere.draw(0, &model_mat_handle, &tex_handle, &normmap_handle, &heightmap_handle);
-	sphere2.draw(0, &model_mat_handle, &tex_handle, &normmap_handle, &heightmap_handle);
-	cube.draw(0, &model_mat_handle, &tex_handle, &normmap_handle, &heightmap_handle);	
+	sphere.draw(0, &model_mat_handle, nullptr, nullptr, nullptr);
+	sphere2.draw(0, &model_mat_handle, nullptr, nullptr, nullptr);
+	cube.draw(0, &model_mat_handle, nullptr, nullptr, nullptr);
+	container.draw(1, &model_mat_handle, nullptr, nullptr, nullptr);
 
 	//printf("%f  %f  %f\n", sphere.pos.x,sphere.pos.y,sphere.pos.z);
 
@@ -205,6 +198,7 @@ void init_bullet()
 	btRigidBody* bottomRigidBody = new btRigidBody(bottomRigidBodyCI);
 	bottomRigidBody->setRestitution(COE);
 	dynamicsWorld->addRigidBody(bottomRigidBody);
+
 	/*
 	* Set up top
 	*/
@@ -259,9 +253,9 @@ void init_bullet()
 	/*
 	* Set up sphere 0
 	*/
-	MovingBits.push_back(SetSphere(1, btTransform(btQuaternion(0,0,0,1),btVector3(sphere.pos.x,sphere.pos.y,sphere.pos.z))));
-	MovingBits.push_back(SetSphere(1, btTransform(btQuaternion(0,0,0,1),btVector3(sphere2.pos.x,sphere2.pos.y,sphere2.pos.z))));
-	//MovingBits.push_back(SetCube(1, btTransform(btQuaternion(0,0,0,1),btVector3(cube.pos.x,cube.pos.y,cube.pos.z))));
+	MovingBits.push_back(SetSphere(1, btTransform(btQuaternion(0,0,1,1),btVector3(sphere.pos.x,sphere.pos.y,sphere.pos.z))));
+	MovingBits.push_back(SetSphere(1, btTransform(btQuaternion(0,1,0,1),btVector3(sphere2.pos.x,sphere2.pos.y,sphere2.pos.z))));
+	MovingBits.push_back(SetCube(btVector3(1,1,1), btTransform(btQuaternion(0,0,0,1),btVector3(cube.pos.x,cube.pos.y,cube.pos.z))));
 }
 
 //Initilise custom objects
@@ -271,11 +265,6 @@ void			init()
 	printf("\n");
 	printf("Initialising GLSL programs...\n");
 	programs.add_program("shaders/basic.vert", "shaders/basic.frag");
-	programs.add_program("shaders/complex.vert", "shaders/complex.frag");
-	programs.add_program("shaders/complex2.vert", "shaders/complex2.frag");
-	programs.add_program("shaders/phong.vert", "shaders/phong.frag");
-	programs.load_program(0);
-
 
 
 	//// CREATE HANDLES
@@ -289,45 +278,19 @@ void			init()
 
 	proj_mat_handle = VarHandle("u_p", &projection);
 	proj_mat_handle.init(programs.current_program);
-
-	tex_handle = VarHandle("u_tex");
-	tex_handle.init(programs.current_program);
-
-	normmap_handle = VarHandle("u_norm");
-	normmap_handle.init(programs.current_program);
-
-	heightmap_handle = VarHandle("u_height");
-	heightmap_handle.init(programs.current_program);
-
-	light_handles[0] = VarHandle("u_light_pos", &lights.pos);
-	light_handles[1] = VarHandle("u_diffuse_color", &lights.color);
-	light_handles[2] = VarHandle("u_brightness", &lights.brightness);
-	light_handles[3] = VarHandle("u_shininess", &lights.shininess);
-	light_handles[4] = VarHandle("u_specular_scale", &lights.specular_scale);
-
-	for (int i = 0; i < 5; ++i)
-		light_handles[i].init(programs.current_program);
-
-	eye_dir_handle = VarHandle("u_eye_pos", &eye_position);
-	eye_dir_handle.init(programs.current_program);
-
-	ambient_color_handle = VarHandle("u_ambient_color", &ambient_color);
-	ambient_color_handle.init(programs.current_program);
-	
-	
 	
 	//// CREATE OBJECTS
 	printf("\n");
 	printf("Initialising objects...\n");
 	// create sphere data for screen A, B and D
-	std::vector<glm::vec3> v = generate_sphere(100, 100);
+	std::vector<glm::vec3> v = generate_sphere(30, 30);
 
 	sphere = Obj(
 		"","","",
 		//"textures/moss_color.jpg",
 		//"textures/moss_norm.jpg",
 		//"textures/moss_height.jpg",
-		pack_object(&v, GEN_DEFAULT, GREY),
+		pack_object(&v, GEN_COLOR_RAND, WHITE),
 		glm::vec3(1,0,0),
 		glm::vec3(1, 0, 0),
 		glm::radians(90.0f),
@@ -341,12 +304,15 @@ void			init()
 
 	cube = Obj(
 		"","","",
-		pack_object(&v, GEN_DEFAULT, RED),
+		pack_object(&v, GEN_COLOR_RAND, WHITE),
 		glm::vec3(-1,0,0),
 		glm::vec3(1,0,0),
 		glm::radians(0.0f),
 		glm::vec3(1,1,1)
 	);
+
+	container = cube;
+	container.scale = glm::vec3(5, 5, 5);
 
 	init_bullet();
 }
@@ -404,7 +370,7 @@ void			glLoop(void(*graphics_loop)(), GLFWwindow * window)
 
 	exit(EXIT_SUCCESS);
 }
-//GL window initialose
+//GL window initialise
 GLFWwindow *				initWindow()
 {
 	GLFWwindow * window;

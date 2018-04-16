@@ -8,6 +8,7 @@ solution ('test')
 		files {'*.cpp', '*.h', '*.hpp'}
 		
 		includedirs{'include/'}
+		includedirs{'include/stb_image/'}
         
 		includedirs{'C:/msys64/mingw64/include/bullet/'}
 		
